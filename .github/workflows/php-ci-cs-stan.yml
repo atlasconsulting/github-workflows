@@ -1,4 +1,4 @@
-name: 'php-ci-cs-stan-unit'
+name: 'php-ci-cs-stan'
 
 on:
   workflow_call:
