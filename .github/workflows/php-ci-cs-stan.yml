@@ -13,17 +13,20 @@ jobs:
 
     steps:
     
-      - name: 'docker pull image'
-        run: docker pull registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4
+      - name: 'debug'
+        run: echo 'starting coding style analyze'
 
-      - name: 'docker run image'
-        run: docker run -d --rm --mount type=bind,source=${{ GITHUB_WORKSPACE }},target=/home --name=build-${{ GITHUB_SHA }} registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4 -c "/bin/sleep 300"
+      # - name: 'docker pull image'
+      #   run: docker pull registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4
 
-      - name: 'docker exec composer install'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
+      # - name: 'docker run image'
+      #   run: docker run -d --rm --mount type=bind,source=${{ GITHUB_WORKSPACE }},target=/home --name=build-${{ GITHUB_SHA }} registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4 -c "/bin/sleep 300"
 
-      - name: 'docker exec phpcs'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run cs-check"
+      # - name: 'docker exec composer install'
+      #   run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
 
-      - name: 'docker exec phpstan'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run stan"
+      # - name: 'docker exec phpcs'
+      #   run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run cs-check"
+
+      # - name: 'docker exec phpstan'
+      #   run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run stan"
