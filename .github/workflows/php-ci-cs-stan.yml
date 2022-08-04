@@ -2,34 +2,79 @@ name: 'php-ci-cs-stan'
 
 on:
   workflow_call:
+    inputs:
+      app:
+        description: 'the app name'
+        default: ''
+        required: true
+        type: string
+
+env:
+  checkout_path: ${{ github.run_number }}/${{ github.sha }}
+  checkout_full_path: ${{ github.workspace }}/${{ github.run_number }}/${{ github.sha }}
+  docker_image: registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
+  docker_name: build-${{ github.sha }}
 
 jobs:
 
-  coding-style-analyze:
+  test:
 
     runs-on: self-hosted
 
-    name: 'Pull docker image, run, composer install, exec phpcs and phpstan'
+    name: 'Test (phpcs phpstan)'
 
     steps:
-    
-      - name: 'debug'
-        run: echo 'starting coding style analyze'
 
       - name: 'docker pull image'
-        run: docker pull registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
+        run: docker pull ${{ env.docker_image }}
 
-      - name: 'checkout current revision'
-        uses: 'actions/checkout@v2'
+      - name: 'checkout'
+        uses: 'actions/checkout@v3'
+        with:
+          path: ${{ env.checkout_path }}
 
       - name: 'docker run image'
-        run: docker run -d --rm --mount type=bind,source=${{ GITHUB_WORKSPACE }},target=/home --name=build-${{ GITHUB_SHA }}  registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5 -c "/bin/sleep 300"
+        run: |
+          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=build-${{ github.sha }} ${{ env.docker_image }} -c "/bin/sleep 300"
 
       - name: 'docker exec composer install'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
 
       - name: 'docker exec phpcs'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run cs-check"
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run cs-check"
 
       - name: 'docker exec phpstan'
-        run: docker exec build-${{ GITHUB_SHA }} bash -c "cd /home && composer run stan"
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run stan"
+
+  build:
+
+    needs: test
+
+    runs-on: self-hosted
+
+    name: 'Build package'
+
+    steps:
+
+      - name: 'ansible update'
+        run: ansible-update.sh atlas_aws_test
+
+      - name: 'set permissions'
+        run: sudo chown -R www-data:www-data ${{ env.checkout_full_path }}
+
+      - name: 'creating package'
+        run: cd /opt/ansible/atlas_aws_test && venv/bin/ansible-playbook package-apps.yml --extra-vars "{\"deploy\":[\"${{ inputs.app }}\"]}" --extra-vars "{\"pack_suffix\":\"${{ github.sha }}\"}" --extra-vars "{\"deploy_options\":{\"${{ inputs.app }}\":{\"mount\":\"${{ env.checkout_full_path }}\"}}}"
+
+  cleanup:
+
+    if: ${{ always() }}
+    needs: [test, build]
+
+    runs-on: self-hosted
+
+    name: 'Cleanup'
+
+    steps:
+
+      - name: 'cleanup'
+        run: sudo rm -rf ${{ env.checkout_full_path }}
