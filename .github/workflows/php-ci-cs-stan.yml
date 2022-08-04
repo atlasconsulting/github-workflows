@@ -10,8 +10,8 @@ on:
         type: string
 
 env:
-  checkout_path: ${{ github.run_number }}/${{ github.sha }}
-  checkout_full_path: ${{ github.workspace }}/${{ github.run_number }}/${{ github.sha }}
+  checkout_path: ${{ github.run_number }}
+  checkout_full_path: ${{ github.workspace }}/${{ github.run_number }}
   docker_image: registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
   docker_name: build-${{ github.sha }}
 
@@ -77,4 +77,4 @@ jobs:
     steps:
 
       - name: 'cleanup'
-        run: sudo rm -rf ${{ env.checkout_full_path }}/..
+        run: sudo rm -rf ${{ env.checkout_full_path }}
