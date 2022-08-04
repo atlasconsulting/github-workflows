@@ -17,7 +17,7 @@ jobs:
         run: echo 'starting coding style analyze'
 
       - name: 'docker pull image'
-        run: docker pull registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4
+        run: docker pull registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
 
       - name: 'docker run image'
         run: docker run -d --rm --mount type=bind,source=${{ GITHUB_WORKSPACE }},target=/home --name=build-${{ GITHUB_SHA }} registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.4 -c "/bin/sleep 300"
