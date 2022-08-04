@@ -77,4 +77,4 @@ jobs:
     steps:
 
       - name: 'cleanup'
-        run: sudo rm -rf ${{ env.checkout_full_path }}
+        run: sudo rm -rf ${{ env.checkout_full_path }}/..
