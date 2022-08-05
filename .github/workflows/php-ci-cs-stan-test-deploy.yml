@@ -1,0 +1,105 @@
+name: 'php-ci-cs-stan-test-deploy'
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: 'the app name'
+        default: ''
+        required: true
+        type: string
+      ansible_repo:
+        description: 'the ansible repository'
+        required: true
+        default: 'atlas-aws-test'
+        type: string
+
+env:
+  checkout_path: ${{ github.run_number }}
+  checkout_full_path: ${{ github.workspace }}/${{ github.run_number }}
+  docker_image: registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
+  docker_name: build-${{ github.sha }}
+
+jobs:
+
+  test:
+
+    runs-on: self-hosted
+
+    name: 'Test (phpcs phpstan)'
+
+    steps:
+
+      - name: 'docker pull image'
+        run: docker pull ${{ env.docker_image }}
+
+      - name: 'checkout'
+        uses: 'actions/checkout@v3'
+        with:
+          path: ${{ env.checkout_path }}
+
+      - name: 'docker run image'
+        run: |
+          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=build-${{ github.sha }} ${{ env.docker_image }} -c "/bin/sleep 300"
+
+      - name: 'docker exec composer install'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
+
+      - name: 'docker exec phpcs'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run cs-check"
+
+      - name: 'docker exec phpstan'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run stan"
+
+      - name: 'docker exec test'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run test"
+
+  build:
+
+    needs: test
+
+    runs-on: self-hosted
+
+    name: 'Build package'
+
+    steps:
+
+      - name: 'ansible update'
+        run: ansible-update.sh atlas_aws_test
+
+      - name: 'set permissions'
+        run: sudo chown -R www-data:www-data ${{ env.checkout_full_path }}
+
+      - name: 'creating package'
+        run: cd /opt/ansible/atlas_aws_test && venv/bin/ansible-playbook package-apps.yml --extra-vars "{\"deploy\":[\"${{ inputs.app }}\"]}" --extra-vars "{\"pack_suffix\":\"${{ github.sha }}\"}" --extra-vars "{\"deploy_options\":{\"${{ inputs.app }}\":{\"mount\":\"${{ env.checkout_full_path }}\"}}}"
+
+  deploy:
+
+    needs: [test, build]
+
+    runs-on: self-hosted
+
+    name: 'Deploy'
+
+    steps:
+
+      - name: 'ansible update'
+        run: ansible-update.sh ${{ inputs.ansible_repository }}
+
+      - name: 'deploying package'
+        run: |
+          cd /opt/ansible/${{ inputs.ansible_repository }} && venv/bin/ansible-playbook s3-deploy-apps.yml --extra-vars "{\"pack_suffix\":\"${{ github.sha }}\"}" --extra-vars "{\"deploy\": [\"${{ inputs.app }}\"], \"archive\":\"yes\"}"
+
+  cleanup:
+
+    if: ${{ always() }}
+    needs: [test, build, deploy]
+
+    runs-on: self-hosted
+
+    name: 'Cleanup'
+
+    steps:
+
+      - name: 'cleanup'
+        run: sudo rm -rf ${{ env.checkout_full_path }}
