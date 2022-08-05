@@ -32,6 +32,21 @@ jobs:
 
       #TODO: verify if build already exists
 
+      - name: 'docker pull image'
+        run: docker pull ${{ env.docker_image }}
+
+      - name: 'checkout'
+        uses: 'actions/checkout@v3'
+        with:
+          path: ${{ env.checkout_path }}
+
+      - name: 'docker run image'
+        run: |
+          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=${{ env.docker_name }} ${{ env.docker_image }} -c "/bin/sleep 300"
+
+      - name: 'docker exec composer install'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
+
       - name: 'ansible update'
         run: ansible-update.sh atlas_aws_test
 
