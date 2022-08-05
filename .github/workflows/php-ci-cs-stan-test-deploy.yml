@@ -18,7 +18,7 @@ env:
   checkout_path: ${{ github.run_number }}
   checkout_full_path: ${{ github.workspace }}/${{ github.run_number }}
   docker_image: registry.gitlab.com/atlasconsulting/devops/atlas-aws-test:v1.5
-  docker_name: build-${{ github.sha }}
+  docker_name: deploy-${{ github.sha }}
 
 jobs:
 
