@@ -1,4 +1,4 @@
-name: 'php-ci-cs-stan'
+name: 'test'
 
 on:
   workflow_call:
@@ -45,6 +45,9 @@ jobs:
 
       - name: 'docker exec phpstan'
         run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run stan"
+
+      - name: 'docker exec test'
+        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run test"
 
   build:
 

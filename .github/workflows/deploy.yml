@@ -1,4 +1,4 @@
-name: 'php-ci-cs-stan-test-deploy'
+name: 'deploy'
 
 on:
   workflow_call:
@@ -22,47 +22,15 @@ env:
 
 jobs:
 
-  test:
-
-    runs-on: self-hosted
-
-    name: 'Test (phpcs phpstan)'
-
-    steps:
-
-      - name: 'docker pull image'
-        run: docker pull ${{ env.docker_image }}
-
-      - name: 'checkout'
-        uses: 'actions/checkout@v3'
-        with:
-          path: ${{ env.checkout_path }}
-
-      - name: 'docker run image'
-        run: |
-          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=${{ env.docker_name }} ${{ env.docker_image }} -c "/bin/sleep 300"
-
-      - name: 'docker exec composer install'
-        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
-
-      - name: 'docker exec phpcs'
-        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run cs-check"
-
-      - name: 'docker exec phpstan'
-        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run stan"
-
-      - name: 'docker exec test'
-        run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer run test"
-
   build:
-
-    needs: test
 
     runs-on: self-hosted
 
     name: 'Build package'
 
     steps:
+
+      #TODO: verify if build already exists
 
       - name: 'ansible update'
         run: ansible-update.sh atlas_aws_test
@@ -75,7 +43,7 @@ jobs:
 
   deploy:
 
-    needs: [test, build]
+    needs: build
 
     runs-on: self-hosted
 
@@ -93,7 +61,7 @@ jobs:
   cleanup:
 
     if: ${{ always() }}
-    needs: [test, build, deploy]
+    needs: [build, deploy]
 
     runs-on: self-hosted
 
