@@ -67,11 +67,11 @@ jobs:
     steps:
 
       - name: 'ansible update'
-        run: ansible-update.sh ${{ inputs.ansible_repository }}
+        run: ansible-update.sh ${{ inputs.ansible_repo }}
 
       - name: 'deploying package'
         run: |
-          cd /opt/ansible/${{ inputs.ansible_repository }} && venv/bin/ansible-playbook s3-deploy-apps.yml --extra-vars "{\"pack_suffix\":\"${{ github.sha }}\"}" --extra-vars "{\"deploy\": [\"${{ inputs.app }}\"], \"archive\":\"yes\"}"
+          cd /opt/ansible/${{ inputs.ansible_repo }} && venv/bin/ansible-playbook s3-deploy-apps.yml --extra-vars "{\"pack_suffix\":\"${{ github.sha }}\"}" --extra-vars "{\"deploy\": [\"${{ inputs.app }}\"], \"archive\":\"yes\"}"
 
   cleanup:
 
