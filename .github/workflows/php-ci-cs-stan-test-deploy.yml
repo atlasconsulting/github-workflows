@@ -40,7 +40,7 @@ jobs:
 
       - name: 'docker run image'
         run: |
-          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=build-${{ github.sha }} ${{ env.docker_image }} -c "/bin/sleep 300"
+          docker run -d --rm --mount type=bind,source=${{ env.checkout_full_path }},target=/home --name=${{ env.docker_name }} ${{ env.docker_image }} -c "/bin/sleep 300"
 
       - name: 'docker exec composer install'
         run: docker exec ${{ env.docker_name }} bash -c "cd /home && composer install --prefer-dist --no-interaction"
